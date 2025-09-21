@@ -33,10 +33,10 @@ class SimpleForwardFlight:
         
         # AirSim接口
         self.airsim_interface = AirSimDroneInterface()
-        self.safety_controller = SafetyController(self.airsim_interface)
         
-        # 为短距离任务优化安全检查
-        self.safety_controller.startup_grace_period = 3.0  # 缩短宽限期到3秒
+        # 不使用原有的SafetyController，创建简化版本
+        self.flight_start_time = None
+        self.use_simple_safety = True
         
         # 飞行参数
         self.takeoff_height = 0.5  # 起飞高度0.5m
@@ -139,6 +139,28 @@ class SimpleForwardFlight:
             self.logger.error(f"速度指令计算失败: {e}")
             return None
             
+    def simple_safety_check(self) -> bool:
+        """简化安全检查（不受宽限期影响）"""
+        try:
+            # 检查碰撞
+            if self.airsim_interface.check_collision():
+                self.logger.error("检测到碰撞！")
+                return True
+                
+            # 检查高度（不要太低）
+            state = self.airsim_interface.get_state()
+            if state and 'height' in state:
+                height = state['height']
+                if height < 0.05:  # 5cm以下认为太低
+                    self.logger.error(f"高度过低: {height:.2f}m")
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"安全检查失败: {e}")
+            return True  # 安全起见，失败则停止
+            
     def simple_obstacle_check(self, depth_image: np.ndarray) -> bool:
         """简单障碍物检测（针对短距离任务）"""
         try:
@@ -206,25 +228,26 @@ class SimpleForwardFlight:
                     self.target_reached = True
                     break
                     
-                # 简单障碍物检测（不受宽限期影响）
-                if self.simple_obstacle_check(depth_image):
-                    self.logger.warning("前方有障碍物，执行缓慢避障...")
-                    # 这里不停止，让ViT模型处理避障
-                    
-                # 安全检查（严重情况）
-                if self.safety_controller.emergency_check():
-                    self.logger.warning("检测到紧急情况，停止飞行")
+                # 简化安全检查（不受宽限期影响）
+                if self.simple_safety_check():
+                    self.logger.warning("检测到严重安全问题，停止飞行")
                     break
+                    
+                # 障碍物检测（继续飞行，但提示）
+                if self.simple_obstacle_check(depth_image):
+                    pass  # 只是提示，让ViT模型处理避障
                     
                 # 计算避障速度指令
                 velocity_cmd = self.compute_velocity_command(depth_image, state)
                 
                 if velocity_cmd is not None:
-                    # 安全检查
-                    safe_velocity = self.safety_controller.safe_velocity_command(*velocity_cmd)
+                    # 简单速度限制
+                    velocity_magnitude = np.linalg.norm(velocity_cmd)
+                    if velocity_magnitude > 3.0:  # 最大速度3m/s
+                        velocity_cmd = velocity_cmd / velocity_magnitude * 3.0
                     
                     # 执行速度指令
-                    success = self.airsim_interface.move_by_velocity(*safe_velocity, control_dt)
+                    success = self.airsim_interface.move_by_velocity(*velocity_cmd, control_dt)
                     
                     if success:
                         frame_count += 1
