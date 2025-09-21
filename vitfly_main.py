@@ -128,8 +128,19 @@ class ViTflySystem:
                 velocity_direction = velocity_np / np.linalg.norm(velocity_np)
                 final_velocity = velocity_direction * self.desired_velocity
                 
+                # 高度稳定机制：根据当前高度调整Z轴速度
+                current_height = -state['position'][2]  # AirSim中Z轴向下为正
+                target_height = 2.5  # 目标高度
+                height_error = current_height - target_height
+                
+                # 如果高度过高，强制下降
+                if height_error > 0.5:  # 高于目标高度0.5m
+                    final_velocity[2] = max(final_velocity[2], 0.5)  # 强制下降
+                elif height_error < -0.3:  # 低于目标高度0.3m
+                    final_velocity[2] = min(final_velocity[2], -0.3)  # 适度上升
+                
                 # 限制Z轴速度，防止过度上升/下降
-                final_velocity[2] = np.clip(final_velocity[2], -1.0, 1.0)  # Z轴速度限制在±1m/s
+                final_velocity[2] = np.clip(final_velocity[2], -0.8, 1.0)
             else:
                 final_velocity = np.array([self.desired_velocity * 0.5, 0.0, 0.0])  # 保守前进
                 
