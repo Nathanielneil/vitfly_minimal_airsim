@@ -29,17 +29,34 @@ pip install -r requirements.txt
 # 确保AirSim 1.8.1已正确安装并运行UE4环境
 ```
 
-### 2. 测试系统
+### 2. 安装依赖
+
+#### 方式1: Conda安装（推荐）
+```bash
+# 创建conda环境
+conda env create -f environment.yml
+conda activate vitfly
+```
+
+#### 方式2: pip安装
+```bash
+pip install -r requirements.txt
+```
+
+#### 方式3: 自动安装脚本
+```bash
+# Windows
+scripts\install_conda.bat
+```
+
+### 3. 测试系统
 
 ```bash
 # 系统连接测试
 python vitfly_main.py --test
-
-# 参数说明:
-# --test: 启动测试模式，验证AirSim连接和模型功能
 ```
 
-### 3. 开始避障飞行
+### 4. 开始避障飞行
 
 ```bash
 # 基础避障飞行
