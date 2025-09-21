@@ -34,8 +34,6 @@ if errorlevel 1 (
 REM 检查AirSim连接
 echo 检查AirSim连接...
 python -c "
-import sys, os
-sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
 import airsim
 try:
     client = airsim.MultirotorClient()
@@ -85,7 +83,7 @@ if "%mode%"=="1" (
     echo 启动探索任务...
     echo 按Ctrl+C可随时安全停止
     python model_adapter.py --mode simple
-    python vitfly_navigation.py --model vitfly_simple_policy.pth --mission-file configs/mission_exploration.yaml
+    python vitfly_navigation.py --model vitfly_simple_policy.pth --mission-file mission_exploration.yaml
 ) else if "%mode%"=="5" (
     echo 模型权重管理...
     echo 1. 创建简单策略权重

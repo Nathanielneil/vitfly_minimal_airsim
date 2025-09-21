@@ -66,29 +66,29 @@ python vitfly_main.py --model vitfly_simple_policy.pth
 python vitfly_navigation.py --model vitfly_simple_policy.pth --mission-type square
 
 # 自定义导航任务
-python vitfly_navigation.py --model vitfly_simple_policy.pth --mission-file configs/mission_exploration.yaml
+python vitfly_navigation.py --model vitfly_simple_policy.pth --mission-file mission_exploration.yaml
 ```
 
 ## 文件结构
 
 ```
 vitfly_minimal_airsim/
-├── src/                        # 源代码目录
-│   ├── models/                 # ViT模型模块
-│   ├── navigation/             # 导航控制模块
-│   ├── airsim_interface/       # AirSim接口模块
-│   ├── vitfly/                 # 核心系统模块
-│   └── training/               # 训练模块
-├── configs/                    # 配置文件目录
-├── examples/                   # 示例代码
-├── scripts/                    # 启动脚本
 ├── vitfly_main.py             # 基础避障入口
 ├── vitfly_navigation.py       # 导航系统入口
+├── vit_model.py               # ViT模型定义
+├── airsim_interface.py        # AirSim接口模块
+├── navigation_controller.py   # 导航控制模块
 ├── train.py                   # 训练入口
-└── requirements.txt           # Python依赖
+├── model_adapter.py           # 模型权重适配器
+├── mission_square.yaml        # 正方形巡航任务
+├── mission_exploration.yaml   # 探索任务
+├── scripts/                   # 启动脚本
+│   ├── run_vitfly.bat         # Windows启动脚本
+│   └── install_conda.bat      # Conda安装脚本
+├── requirements.txt           # Python依赖
+├── environment.yml            # Conda环境配置
+└── README.md                  # 项目说明
 ```
-
-详细结构请参考 [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
 
 ## 技术细节
 
