@@ -168,6 +168,13 @@ class ViTflySystem:
             while self.is_running and not self.emergency_stop:
                 loop_start = time.time()
                 
+                # 检查飞行时间
+                if hasattr(self, 'flight_duration'):
+                    elapsed_time = time.time() - self.performance_stats['start_time']
+                    if elapsed_time >= self.flight_duration:
+                        self.logger.info(f"飞行时间到达 ({elapsed_time:.1f}s >= {self.flight_duration}s), 准备降落")
+                        break
+                
                 # 紧急情况检查
                 if self.safety_controller.emergency_check():
                     self.logger.warning("检测到紧急情况，停止飞行")
@@ -237,18 +244,12 @@ class ViTflySystem:
             # 开始飞行
             self.is_running = True
             self.performance_stats['start_time'] = time.time()
+            self.flight_duration = duration  # 保存飞行时间
             
             self.logger.info(f"开始自主避障飞行 (高度: {altitude}m, 持续时间: {duration}s)")
             
-            # 设置超时
-            end_time = time.time() + duration
-            
             # 主控制循环
             self.control_loop()
-            
-            # 检查超时
-            if time.time() >= end_time:
-                self.logger.info("飞行时间到达，准备降落")
                 
             return True
             

@@ -374,21 +374,27 @@ class SafetyController:
     def emergency_check(self) -> bool:
         """紧急情况检查"""
         # 启动期内放宽检查
-        if time.time() - self.startup_time < self.startup_grace_period:
+        elapsed = time.time() - self.startup_time
+        if elapsed < self.startup_grace_period:
+            print(f"Debug: 在启动宽限期内 ({elapsed:.1f}s < {self.startup_grace_period}s), 跳过安全检查")
             return False
             
         # 碰撞检查
         if self.interface.check_collision():
+            print("Debug: 检测到碰撞, 执行紧急降落")
             self.interface.emergency_land()
             return True
             
         # 高度检查
         state = self.interface.get_state()
         if state and 'height' in state:
-            if state['height'] < 0.1:  # 过低（放宽限制）
+            height = state['height']
+            if height < 0.1:  # 过低（放宽限制）
+                print(f"Debug: 高度过低 ({height:.2f}m < 0.1m), 执行紧急降落")
                 self.interface.emergency_land()
                 return True
-                
+        
+        print(f"Debug: 安全检查通过 (高度: {height:.2f}m, 时间: {elapsed:.1f}s)")
         return False
 
 
