@@ -297,8 +297,8 @@ if __name__ == "__main__":
     # 测试前向推理
     batch_size = 1
     depth_image = torch.randn(batch_size, 1, 60, 90, device=device)
-    desired_velocity = torch.tensor([[5.0]], device=device)
-    quaternion = torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=device)
+    desired_velocity = torch.tensor([[5.0]], device=device, dtype=torch.float32)
+    quaternion = torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=device, dtype=torch.float32)
     
     # 初始推理
     with torch.no_grad():

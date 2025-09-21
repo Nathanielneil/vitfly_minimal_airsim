@@ -86,8 +86,8 @@ class ViTflyNavigationSystem:
             depth_tensor = torch.from_numpy(depth_image).unsqueeze(0).unsqueeze(0).to(self.device)
             
             # 模型推理
-            desired_vel = torch.tensor([[self.base_velocity]], device=self.device)
-            quaternion = torch.tensor([state['orientation_quaternion']], device=self.device)
+            desired_vel = torch.tensor([[self.base_velocity]], device=self.device, dtype=torch.float32)
+            quaternion = torch.tensor([state['orientation_quaternion']], device=self.device, dtype=torch.float32)
             
             with torch.no_grad():
                 velocity_cmd, self.lstm_hidden_state = self.model(

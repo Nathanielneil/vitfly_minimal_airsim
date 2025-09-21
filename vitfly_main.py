@@ -111,8 +111,8 @@ class ViTflySystem:
                 return None
                 
             # 准备输入
-            desired_vel = torch.tensor([[self.desired_velocity]], device=self.device)
-            quaternion = torch.tensor([state['orientation_quaternion']], device=self.device)
+            desired_vel = torch.tensor([[self.desired_velocity]], device=self.device, dtype=torch.float32)
+            quaternion = torch.tensor([state['orientation_quaternion']], device=self.device, dtype=torch.float32)
             
             # 模型推理
             with torch.no_grad():
