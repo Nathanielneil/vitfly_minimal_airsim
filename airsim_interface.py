@@ -379,9 +379,11 @@ class SafetyController:
             print(f"Debug: 在启动宽限期内 ({elapsed:.1f}s < {self.startup_grace_period}s), 跳过安全检查")
             return False
             
-        # 碰撞检查
-        if self.interface.check_collision():
-            print("Debug: 检测到碰撞, 执行紧急降落")
+        # 碰撞检查（增加更长的碰撞宽限期）
+        if elapsed < 10.0:  # 起飞后10秒内不检查碰撞
+            print(f"Debug: 碰撞宽限期内 ({elapsed:.1f}s < 10.0s), 跳过碰撞检查")
+        elif self.interface.check_collision():
+            print("Debug: 检测到真实碰撞, 执行紧急降落")
             self.interface.emergency_land()
             return True
             
