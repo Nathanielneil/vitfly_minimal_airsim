@@ -171,9 +171,9 @@ class AirSimDroneInterface:
             elif current_height > self.max_height and vz < 0:
                 vz = min(vz, 1.0)   # 限制上升速度
                 
-            # 执行速度控制
+            # 执行速度控制（确保数据类型兼容）
             future = self.client.moveByVelocityAsync(
-                vx, vy, vz, duration, 
+                float(vx), float(vy), float(vz), float(duration), 
                 vehicle_name=self.vehicle_name
             )
             

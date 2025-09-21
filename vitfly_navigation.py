@@ -207,7 +207,7 @@ def main():
     parser = argparse.ArgumentParser(description="ViTfly导航系统")
     parser.add_argument('--model', type=str, help='预训练模型路径')
     parser.add_argument('--device', type=str, default='auto', help='计算设备')
-    parser.add_argument('--altitude', type=float, default=3.0, help='飞行高度 (m)')
+    parser.add_argument('--altitude', type=float, default=2.5, help='飞行高度 (m)')
     parser.add_argument('--mission-file', type=str, help='任务文件路径')
     parser.add_argument('--mission-type', choices=['square', 'line', 'exploration'], 
                        default='square', help='内置任务类型')
