@@ -36,7 +36,7 @@ setup(
         "Topic :: Scientific/Engineering :: Image Recognition",
         "Topic :: System :: Hardware :: Hardware Drivers",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.7,<3.11",
     install_requires=requirements,
     extras_require={
         "dev": [
