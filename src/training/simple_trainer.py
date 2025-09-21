@@ -11,8 +11,8 @@ import cv2
 from collections import deque
 from pathlib import Path
 
-from vit_model import create_minimal_vit_model
-from airsim_interface import AirSimDroneInterface
+from models.vit_model import create_minimal_vit_model
+from airsim_interface.airsim_interface import AirSimDroneInterface
 
 
 class SimpleDataCollector:

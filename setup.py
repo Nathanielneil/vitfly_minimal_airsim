@@ -19,7 +19,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/vitfly/vitfly-minimal-airsim",
-    packages=find_packages(),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -53,6 +54,8 @@ setup(
     entry_points={
         "console_scripts": [
             "vitfly=vitfly_main:main",
+            "vitfly-nav=vitfly_navigation:main", 
+            "vitfly-train=train:main",
         ],
     },
     include_package_data=True,

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-ViTfly主程序入口 - 基础避障系统
+ViTfly训练系统入口
 """
 
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from vitfly.vitfly_system import main
+from training.simple_trainer import main
 
 if __name__ == "__main__":
     main()
