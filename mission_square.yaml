@@ -1,0 +1,23 @@
+# 正方形巡航任务
+mode: patrol
+waypoints:
+  - x: 10
+    y: 0
+    z: -3
+    tolerance: 2.0
+    max_velocity: 3.0
+  - x: 10
+    y: 10
+    z: -3
+    tolerance: 2.0
+    max_velocity: 3.0
+  - x: 0
+    y: 10
+    z: -3
+    tolerance: 2.0
+    max_velocity: 3.0
+  - x: 0
+    y: 0
+    z: -3
+    tolerance: 2.0
+    max_velocity: 3.0

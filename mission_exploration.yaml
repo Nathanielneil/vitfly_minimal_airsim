@@ -1,0 +1,23 @@
+# 探索任务
+mode: goto
+waypoints:
+  - x: 15
+    y: 5
+    z: -3
+    tolerance: 3.0
+    max_velocity: 4.0
+  - x: 20
+    y: -5
+    z: -4
+    tolerance: 2.0
+    max_velocity: 3.0
+  - x: 10
+    y: -10
+    z: -5
+    tolerance: 2.0
+    max_velocity: 2.0
+  - x: 0
+    y: 0
+    z: -3
+    tolerance: 2.0
+    max_velocity: 3.0
