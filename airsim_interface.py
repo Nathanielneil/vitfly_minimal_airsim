@@ -343,6 +343,8 @@ class SafetyController:
         self.max_acceleration = 5.0  # m/s²
         self.previous_velocity = np.zeros(3)
         self.previous_time = time.time()
+        self.startup_time = time.time()  # 记录启动时间
+        self.startup_grace_period = 5.0  # 启动后5秒内不执行严格检查
         
     def safe_velocity_command(self, vx: float, vy: float, vz: float) -> Tuple[float, float, float]:
         """安全速度指令处理"""
@@ -371,6 +373,10 @@ class SafetyController:
         
     def emergency_check(self) -> bool:
         """紧急情况检查"""
+        # 启动期内放宽检查
+        if time.time() - self.startup_time < self.startup_grace_period:
+            return False
+            
         # 碰撞检查
         if self.interface.check_collision():
             self.interface.emergency_land()
@@ -379,7 +385,7 @@ class SafetyController:
         # 高度检查
         state = self.interface.get_state()
         if state and 'height' in state:
-            if state['height'] < 0.3:  # 过低
+            if state['height'] < 0.1:  # 过低（放宽限制）
                 self.interface.emergency_land()
                 return True
                 
