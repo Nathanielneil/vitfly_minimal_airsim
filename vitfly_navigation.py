@@ -98,7 +98,11 @@ class ViTflyNavigationSystem:
             
             if np.linalg.norm(velocity_np) > 0:
                 velocity_direction = velocity_np / np.linalg.norm(velocity_np)
-                return velocity_direction * self.base_velocity
+                final_velocity = velocity_direction * self.base_velocity
+                
+                # 限制Z轴速度，防止过度上升/下降
+                final_velocity[2] = np.clip(final_velocity[2], -1.0, 1.0)
+                return final_velocity
             else:
                 return np.array([self.base_velocity * 0.5, 0.0, 0.0])
                 

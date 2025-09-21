@@ -33,14 +33,14 @@ def create_simple_policy_weights(model, output_path="vitfly_simple_policy.pth"):
             elif 'bias' in name:
                 nn.init.zeros_(param)
     
-    # 调整最后一层的权重，使其倾向于前进
+    # 调整最后一层的权重，使其倾向于水平前进
     if hasattr(model, 'velocity_predictor'):
         with torch.no_grad():
-            # 设置偏向前进的偏置
+            # 设置偏向水平前进的偏置
             if hasattr(model.velocity_predictor, 'bias') and model.velocity_predictor.bias is not None:
-                model.velocity_predictor.bias.data[0] = 0.5  # 前进偏置
+                model.velocity_predictor.bias.data[0] = 0.3  # 前进偏置（适度降低）
                 model.velocity_predictor.bias.data[1] = 0.0  # 左右平衡
-                model.velocity_predictor.bias.data[2] = 0.0  # 上下平衡
+                model.velocity_predictor.bias.data[2] = 0.1  # 轻微下降偏置（保持高度）
     
     # 保存模型权重
     torch.save(model.state_dict(), output_path)
