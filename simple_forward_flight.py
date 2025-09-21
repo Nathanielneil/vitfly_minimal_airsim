@@ -35,6 +35,9 @@ class SimpleForwardFlight:
         self.airsim_interface = AirSimDroneInterface()
         self.safety_controller = SafetyController(self.airsim_interface)
         
+        # 为短距离任务优化安全检查
+        self.safety_controller.startup_grace_period = 3.0  # 缩短宽限期到3秒
+        
         # 飞行参数
         self.takeoff_height = 0.5  # 起飞高度0.5m
         self.forward_distance = 4.0  # 前进距离4m
@@ -136,6 +139,26 @@ class SimpleForwardFlight:
             self.logger.error(f"速度指令计算失败: {e}")
             return None
             
+    def simple_obstacle_check(self, depth_image: np.ndarray) -> bool:
+        """简单障碍物检测（针对短距离任务）"""
+        try:
+            # 检查前方区域
+            height, width = depth_image.shape
+            front_region = depth_image[height//3:2*height//3, width//3:2*width//3]
+            front_depth = np.mean(front_region)
+            
+            # 如果前方深度小于阈值，认为有障碍物
+            obstacle_threshold = 0.3  # 30cm
+            if front_depth < obstacle_threshold:
+                self.logger.warning(f"检测到前方障碍物！深度: {front_depth:.2f}m < {obstacle_threshold}m")
+                return True
+                
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"障碍物检测失败: {e}")
+            return False
+            
     def check_distance_reached(self, current_position: np.ndarray) -> bool:
         """检查是否已前进指定距离"""
         if self.start_position is None:
@@ -183,7 +206,12 @@ class SimpleForwardFlight:
                     self.target_reached = True
                     break
                     
-                # 安全检查
+                # 简单障碍物检测（不受宽限期影响）
+                if self.simple_obstacle_check(depth_image):
+                    self.logger.warning("前方有障碍物，执行缓慢避障...")
+                    # 这里不停止，让ViT模型处理避障
+                    
+                # 安全检查（严重情况）
                 if self.safety_controller.emergency_check():
                     self.logger.warning("检测到紧急情况，停止飞行")
                     break
