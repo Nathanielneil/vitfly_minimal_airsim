@@ -124,17 +124,43 @@ class OverlayDataCollector:
                 print("警告: 深度图像获取失败，使用默认深度")
                 depth_array = np.ones(self.image_size, dtype=np.float32) * 0.5
                 
-            # 获取无人机状态
-            state = self.client.getMultirotorState(vehicle_name="Drone1")
-            pose = state.kinematics_estimated.pose
-            velocity = state.kinematics_estimated.linear_velocity
+            # 获取无人机状态（兼容不同AirSim版本）
+            try:
+                state = self.client.getMultirotorState(vehicle_name="Drone1")
+                
+                # 兼容性处理：不同版本的属性名可能不同
+                if hasattr(state.kinematics_estimated, 'pose'):
+                    pose = state.kinematics_estimated.pose
+                    velocity = state.kinematics_estimated.linear_velocity
+                    position = pose.position
+                    orientation = pose.orientation
+                elif hasattr(state.kinematics_estimated, 'position'):
+                    position = state.kinematics_estimated.position
+                    orientation = state.kinematics_estimated.orientation
+                    velocity = state.kinematics_estimated.linear_velocity
+                else:
+                    # 备用方法：直接获取位置和姿态
+                    pose = self.client.simGetVehiclePose(vehicle_name="Drone1")
+                    position = pose.position
+                    orientation = pose.orientation
+                    state = self.client.getMultirotorState(vehicle_name="Drone1")
+                    velocity = state.kinematics_estimated.linear_velocity
+                
+            except Exception as e:
+                print(f"状态获取失败，使用备用方法: {e}")
+                # 备用方法
+                pose = self.client.simGetVehiclePose(vehicle_name="Drone1")
+                position = pose.position
+                orientation = pose.orientation
+                # 默认速度
+                velocity = type('obj', (object,), {'x_val': 0, 'y_val': 0, 'z_val': 0})()
             
             return {
                 'rgb_image': rgb_array,
                 'depth_image': depth_array,
-                'position': np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val]),
-                'quaternion': np.array([pose.orientation.w_val, pose.orientation.x_val, 
-                                      pose.orientation.y_val, pose.orientation.z_val]),
+                'position': np.array([position.x_val, position.y_val, position.z_val]),
+                'quaternion': np.array([orientation.w_val, orientation.x_val, 
+                                      orientation.y_val, orientation.z_val]),
                 'velocity': np.array([velocity.x_val, velocity.y_val, velocity.z_val]),
                 'timestamp': time.time()
             }

@@ -23,8 +23,30 @@ def test_connection():
         # 测试状态获取
         print("获取无人机状态...")
         state = client.getMultirotorState(vehicle_name="Drone1")
-        pose = state.kinematics_estimated.pose
-        print(f"✅ 位置: ({pose.position.x_val:.2f}, {pose.position.y_val:.2f}, {pose.position.z_val:.2f})")
+        
+        # 兼容不同AirSim版本的属性名
+        try:
+            if hasattr(state.kinematics_estimated, 'pose'):
+                pose = state.kinematics_estimated.pose
+                position = pose.position
+            elif hasattr(state.kinematics_estimated, 'position'):
+                position = state.kinematics_estimated.position
+            else:
+                # 尝试直接获取位置信息
+                pose = client.simGetVehiclePose(vehicle_name="Drone1")
+                position = pose.position
+                
+            print(f"✅ 位置: ({position.x_val:.2f}, {position.y_val:.2f}, {position.z_val:.2f})")
+        except Exception as e:
+            print(f"状态获取详细错误: {e}")
+            print("尝试备用方法...")
+            try:
+                pose = client.simGetVehiclePose(vehicle_name="Drone1")
+                position = pose.position
+                print(f"✅ 位置(备用方法): ({position.x_val:.2f}, {position.y_val:.2f}, {position.z_val:.2f})")
+            except Exception as e2:
+                print(f"备用方法也失败: {e2}")
+                print("但连接仍然有效，继续测试...")
         
         # 测试图像获取
         print("获取相机图像...")

@@ -67,17 +67,36 @@ class SimpleDataCollector:
             else:
                 return None
                 
-            # 获取无人机状态（使用Drone1）
+            # 获取无人机状态（使用Drone1，兼容版本差异）
             state = self.client.getMultirotorState(vehicle_name="Drone1")
-            pose = state.kinematics_estimated.pose
-            velocity = state.kinematics_estimated.linear_velocity
+            
+            # 兼容不同AirSim版本
+            try:
+                if hasattr(state.kinematics_estimated, 'pose'):
+                    pose = state.kinematics_estimated.pose
+                    velocity = state.kinematics_estimated.linear_velocity
+                    position = pose.position
+                    orientation = pose.orientation
+                else:
+                    # 备用方法
+                    pose = self.client.simGetVehiclePose(vehicle_name="Drone1")
+                    position = pose.position
+                    orientation = pose.orientation
+                    velocity = state.kinematics_estimated.linear_velocity
+            except:
+                # 最终备用方法
+                pose = self.client.simGetVehiclePose(vehicle_name="Drone1")
+                position = pose.position
+                orientation = pose.orientation
+                # 默认速度
+                velocity = type('obj', (object,), {'x_val': 0, 'y_val': 0, 'z_val': 0})()
             
             # 组织数据
             sensor_data = {
                 'depth_image': depth_image,
-                'position': np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val]),
-                'quaternion': np.array([pose.orientation.w_val, pose.orientation.x_val, 
-                                      pose.orientation.y_val, pose.orientation.z_val]),
+                'position': np.array([position.x_val, position.y_val, position.z_val]),
+                'quaternion': np.array([orientation.w_val, orientation.x_val, 
+                                      orientation.y_val, orientation.z_val]),
                 'velocity': np.array([velocity.x_val, velocity.y_val, velocity.z_val]),
                 'timestamp': time.time()
             }
