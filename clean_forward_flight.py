@@ -154,7 +154,7 @@ class CleanForwardFlight:
                 'position': position,
                 'orientation_quaternion': orientation_quaternion,
                 'velocity': velocity_vec,
-                'height': -pose.position.z_val
+                'height': abs(pose.position.z_val)  # 绝对值作为高度
             }
             
         except Exception as e:
@@ -253,15 +253,15 @@ class CleanForwardFlight:
                 if final_velocity[0] < 0.3:
                     final_velocity[0] = 0.5
                     
-                # 高度稳定
-                current_height = -state['position'][2]
-                target_height = self.takeoff_height
-                height_error = current_height - target_height
+                # 高度稳定（AirSim中Z向下为正）
+                current_z = state['position'][2]  # AirSim Z坐标
+                target_z = -self.takeoff_height  # 目标Z坐标
+                height_error = current_z - target_z  # Z轴误差
                 
-                if height_error > 0.2:
-                    final_velocity[2] = max(final_velocity[2], 0.3)
-                elif height_error < -0.2:
-                    final_velocity[2] = min(final_velocity[2], -0.3)
+                if height_error > 0.2:  # 太低，需要上升（Z减小）
+                    final_velocity[2] = min(final_velocity[2], -0.3)  # 上升
+                elif height_error < -0.2:  # 太高，需要下降（Z增大）
+                    final_velocity[2] = max(final_velocity[2], 0.3)   # 下降
                 else:
                     final_velocity[2] = np.clip(final_velocity[2], -0.5, 0.5)
                     
@@ -328,9 +328,10 @@ class CleanForwardFlight:
                     # 不停止，只是警告，让ViT处理
                     pass
                     
-                # 高度安全检查
-                if state['height'] < 0.05:
-                    self.logger.error(f"⚠️ 高度过低: {state['height']:.2f}m")
+                # 高度安全检查（检查是否接近地面）
+                current_z = state['position'][2]  # AirSim Z坐标
+                if current_z > -0.05:  # 在AirSim中，地面附近Z接近0
+                    self.logger.error(f"⚠️ 高度过低: Z={current_z:.2f}m")
                     break
                     
                 # 计算避障指令
