@@ -154,7 +154,7 @@ class CleanForwardFlight:
                 'position': position,
                 'orientation_quaternion': orientation_quaternion,
                 'velocity': velocity_vec,
-                'height': abs(pose.position.z_val)  # 绝对值作为高度
+                'height': abs(pose.position.z_val)  # 使用Z值的绝对值作为高度
             }
             
         except Exception as e:
@@ -253,15 +253,15 @@ class CleanForwardFlight:
                 if final_velocity[0] < 0.3:
                     final_velocity[0] = 0.5
                     
-                # 高度稳定（AirSim中Z向下为正）
-                current_z = state['position'][2]  # AirSim Z坐标
-                target_z = -self.takeoff_height  # 目标Z坐标
-                height_error = current_z - target_z  # Z轴误差
+                # 高度稳定：保持在目标高度
+                current_height = state['height']  # 当前高度（绝对值）
+                target_height = self.takeoff_height  # 目标高度
+                height_error = current_height - target_height  # 高度误差
                 
-                if height_error > 0.2:  # 太低，需要上升（Z减小）
+                if height_error > 0.3:  # 高于目标高度，需要下降
+                    final_velocity[2] = max(final_velocity[2], 0.3)  # 下降
+                elif height_error < -0.3:  # 低于目标高度，需要上升
                     final_velocity[2] = min(final_velocity[2], -0.3)  # 上升
-                elif height_error < -0.2:  # 太高，需要下降（Z增大）
-                    final_velocity[2] = max(final_velocity[2], 0.3)   # 下降
                 else:
                     final_velocity[2] = np.clip(final_velocity[2], -0.5, 0.5)
                     
@@ -328,10 +328,13 @@ class CleanForwardFlight:
                     # 不停止，只是警告，让ViT处理
                     pass
                     
-                # 高度安全检查（检查是否接近地面）
-                current_z = state['position'][2]  # AirSim Z坐标
-                if current_z > -0.05:  # 在AirSim中，地面附近Z接近0
-                    self.logger.error(f"⚠️ 高度过低: Z={current_z:.2f}m")
+                # 高度安全检查（检查是否过低）
+                current_height = state['height']
+                if current_height > 5.0:  # 高度超过5m认为异常
+                    self.logger.error(f"⚠️ 高度异常: {current_height:.2f}m")
+                    break
+                elif current_height < 0.1:  # 高度低于10cm认为着陆
+                    self.logger.error(f"⚠️ 高度过低: {current_height:.2f}m")
                     break
                     
                 # 计算避障指令
@@ -352,7 +355,8 @@ class CleanForwardFlight:
                     # 每20帧报告一次
                     if frame_count % 20 == 0:
                         current_distance = state['position'][0] - self.start_position[0] if self.start_position is not None else 0
-                        self.logger.info(f"🎯 帧 {frame_count}: 速度 {velocity_cmd}, 已前进 {current_distance:.2f}m")
+                        current_height = state['height']
+                        self.logger.info(f"🎯 帧 {frame_count}: 速度 {velocity_cmd}, 已前进 {current_distance:.2f}m, 高度 {current_height:.2f}m")
                         
                 # 控制频率
                 loop_time = time.time() - loop_start
