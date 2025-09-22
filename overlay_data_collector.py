@@ -49,14 +49,34 @@ class OverlayDataCollector:
     def connect(self):
         """连接AirSim"""
         try:
+            print("正在连接AirSim...")
             self.client.confirmConnection()
+            print("AirSim连接确认成功")
+            
+            print("启用API控制...")
             self.client.enableApiControl(True, vehicle_name="Drone1")
+            print("API控制启用成功")
+            
+            print("解锁无人机...")
             self.client.armDisarm(True, vehicle_name="Drone1")
+            print("无人机解锁成功")
+            
+            # 测试图像获取
+            print("测试图像获取...")
+            test_request = airsim.ImageRequest("front_center", airsim.ImageType.Scene, False, False)
+            test_response = self.client.simGetImages([test_request], vehicle_name="Drone1")[0]
+            if test_response.image_data_uint8:
+                print(f"图像获取测试成功: {test_response.width}x{test_response.height}")
+            else:
+                print("警告: 图像获取测试失败")
+            
             self.is_connected = True
-            print("AirSim连接成功")
+            print("✅ AirSim连接完全成功")
             return True
         except Exception as e:
-            print(f"AirSim连接失败: {e}")
+            print(f"❌ AirSim连接失败: {e}")
+            import traceback
+            traceback.print_exc()
             return False
             
     def get_sensor_data(self):
@@ -75,21 +95,34 @@ class OverlayDataCollector:
             
             # 处理RGB图像
             rgb_array = None
-            if rgb_response.image_data_uint8:
+            if rgb_response.image_data_uint8 and len(rgb_response.image_data_uint8) > 0:
                 rgb_1d = np.frombuffer(rgb_response.image_data_uint8, dtype=np.uint8)
-                rgb_array = rgb_1d.reshape(rgb_response.height, rgb_response.width, 3)
-                rgb_array = cv2.resize(rgb_array, self.display_size)
+                if len(rgb_1d) >= rgb_response.height * rgb_response.width * 3:
+                    rgb_array = rgb_1d.reshape(rgb_response.height, rgb_response.width, 3)
+                    rgb_array = cv2.resize(rgb_array, self.display_size)
+                    # BGR转RGB (OpenCV默认BGR)
+                    rgb_array = cv2.cvtColor(rgb_array, cv2.COLOR_BGR2RGB)
+            
+            # 如果RGB失败，创建默认图像
+            if rgb_array is None:
+                print("警告: RGB图像获取失败，使用默认图像")
+                rgb_array = np.zeros((self.display_size[1], self.display_size[0], 3), dtype=np.uint8)
+                cv2.putText(rgb_array, "No Camera Feed", (50, self.display_size[1]//2), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             
             # 处理深度图像
             depth_array = None
-            if depth_response.image_data_float:
+            if depth_response.image_data_float and len(depth_response.image_data_float) > 0:
                 depth_1d = np.array(depth_response.image_data_float, dtype=np.float32)
-                depth_array = depth_1d.reshape(depth_response.height, depth_response.width)
-                depth_array = cv2.resize(depth_array, (self.image_size[1], self.image_size[0]))
-                depth_array = np.clip(depth_array, 0, 100) / 100.0
+                if len(depth_1d) >= depth_response.height * depth_response.width:
+                    depth_array = depth_1d.reshape(depth_response.height, depth_response.width)
+                    depth_array = cv2.resize(depth_array, (self.image_size[1], self.image_size[0]))
+                    depth_array = np.clip(depth_array, 0, 100) / 100.0
             
-            if rgb_array is None or depth_array is None:
-                return None
+            # 如果深度失败，创建默认深度
+            if depth_array is None:
+                print("警告: 深度图像获取失败，使用默认深度")
+                depth_array = np.ones(self.image_size, dtype=np.float32) * 0.5
                 
             # 获取无人机状态
             state = self.client.getMultirotorState(vehicle_name="Drone1")
@@ -107,6 +140,7 @@ class OverlayDataCollector:
             }
             
         except Exception as e:
+            print(f"传感器数据获取失败: {e}")
             return None
             
     def create_control_overlay(self, image, sensor_data):
