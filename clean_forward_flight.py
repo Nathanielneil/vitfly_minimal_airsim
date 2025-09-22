@@ -187,15 +187,25 @@ class CleanForwardFlight:
         """检查前方障碍物"""
         try:
             height, width = depth_image.shape
-            front_region = depth_image[height//3:2*height//3, width//3:2*width//3]
-            front_depth = np.mean(front_region)
             
-            if front_depth < 0.2:  # 20cm以内有障碍物
-                self.logger.info(f"⚠️ 前方有障碍物: {front_depth:.2f}m")
+            # 检查多个区域
+            center_region = depth_image[height//3:2*height//3, width//3:2*width//3]
+            left_region = depth_image[height//3:2*height//3, 0:width//3]
+            right_region = depth_image[height//3:2*height//3, 2*width//3:width]
+            
+            center_depth = np.mean(center_region)
+            left_depth = np.mean(left_region)
+            right_depth = np.mean(right_region)
+            
+            # 更早的警告距离
+            if center_depth < 1.0:  # 1m以内有障碍物
+                self.logger.warning(f"⚠️ 前方障碍物: 中心{center_depth:.2f}m, 左{left_depth:.2f}m, 右{right_depth:.2f}m")
                 return True
+                
             return False
             
-        except:
+        except Exception as e:
+            self.logger.error(f"障碍物检测失败: {e}")
             return False
             
     def move_by_velocity(self, vx: float, vy: float, vz: float, duration: float) -> bool:
@@ -245,28 +255,41 @@ class CleanForwardFlight:
                 
             velocity_np = velocity_cmd.squeeze().cpu().numpy()
             
+            # 打印原始ViT输出用于调试
+            if hasattr(self, '_debug_frame_count'):
+                self._debug_frame_count += 1
+            else:
+                self._debug_frame_count = 1
+                
+            if self._debug_frame_count % 10 == 0:  # 每10帧打印一次
+                self.logger.info(f"🤖 ViT原始输出: {velocity_np}")
+            
             if np.linalg.norm(velocity_np) > 0:
+                # 保持ViT输出的方向，但调整幅度
                 velocity_direction = velocity_np / np.linalg.norm(velocity_np)
-                final_velocity = velocity_direction * self.base_velocity
                 
-                # 确保主要是前进
-                if final_velocity[0] < 0.3:
-                    final_velocity[0] = 0.5
-                    
-                # 高度稳定：保持在目标高度
-                current_height = state['height']  # 当前高度（绝对值）
-                target_height = self.takeoff_height  # 目标高度
-                height_error = current_height - target_height  # 高度误差
+                # 根据ViT输出调整速度
+                final_velocity = velocity_np.copy()
                 
-                if height_error > 0.3:  # 高于目标高度，需要下降
-                    final_velocity[2] = max(final_velocity[2], 0.3)  # 下降
-                elif height_error < -0.3:  # 低于目标高度，需要上升
-                    final_velocity[2] = min(final_velocity[2], -0.3)  # 上升
-                else:
-                    final_velocity[2] = np.clip(final_velocity[2], -0.5, 0.5)
+                # 限制速度范围，但保持避障行为
+                final_velocity[0] = np.clip(final_velocity[0], 0.2, 2.0)  # 前进速度
+                final_velocity[1] = np.clip(final_velocity[1], -1.5, 1.5)  # 左右避障
+                final_velocity[2] = np.clip(final_velocity[2], -1.0, 1.0)  # 上下避障
+                
+                # 轻微的高度稳定（不覆盖ViT的Z轴避障）
+                current_height = state['height']
+                target_height = self.takeoff_height
+                height_error = current_height - target_height
+                
+                # 只在高度偏差很大时才干预
+                if height_error > 1.5:  # 高于目标1.5m以上
+                    final_velocity[2] = 0.5  # 强制下降
+                elif height_error < -0.8:  # 低于目标0.8m以上
+                    final_velocity[2] = -0.3  # 强制上升
                     
             else:
-                final_velocity = np.array([0.5, 0.0, 0.0])
+                # ViT没有输出时的保守策略
+                final_velocity = np.array([0.3, 0.0, 0.0])
                 
             return final_velocity
             
