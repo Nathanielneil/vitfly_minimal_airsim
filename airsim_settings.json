@@ -1,0 +1,42 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",
+  "ClockType": "SteppableClock",
+  "Vehicles": {
+    "Drone": {
+      "VehicleType": "SimpleFlight",
+      "EnableApiControl": true,
+      "AllowAPIAlways": true,
+      "RC": {
+        "RemoteControlID": 0,
+        "AllowAPIWhenDisconnected": true
+      }
+    }
+  },
+  "ApiServerPort": 41451,
+  "LogMessagesVisible": true,
+  "ViewMode": "FlyWithMe",
+  "RpcEnabled": true,
+  "EngineSound": false,
+  "PhysicsEngineName": "FastPhysicsEngine",
+  "SpeedUnitFactor": 1.0,
+  "WindSpeed": 0,
+  "CameraDefaults": {
+    "CaptureSettings": [
+      {
+        "ImageType": 0,
+        "Width": 256,
+        "Height": 144,
+        "FOV_Degrees": 90,
+        "AutoExposureSpeed": 100,
+        "MotionBlurAmount": 0
+      },
+      {
+        "ImageType": 2,
+        "Width": 256,
+        "Height": 144,
+        "FOV_Degrees": 90
+      }
+    ]
+  }
+}

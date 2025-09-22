@@ -41,7 +41,10 @@ class SimpleDataCollector:
         """连接AirSim"""
         try:
             self.client.confirmConnection()
-            print("AirSim连接成功")
+            # 启用API控制（适配您的配置中的Drone1）
+            self.client.enableApiControl(True, vehicle_name="Drone1")
+            self.client.armDisarm(True, vehicle_name="Drone1")
+            print("AirSim连接成功，已启用API控制")
             return True
         except Exception as e:
             print(f"AirSim连接失败: {e}")
@@ -50,9 +53,9 @@ class SimpleDataCollector:
     def get_sensor_data(self):
         """获取传感器数据"""
         try:
-            # 获取深度图像
+            # 获取深度图像（使用Drone1）
             request = airsim.ImageRequest("front_center", airsim.ImageType.DepthPerspective, True, False)
-            response = self.client.simGetImages([request])[0]
+            response = self.client.simGetImages([request], vehicle_name="Drone1")[0]
             
             if response.image_data_float:
                 depth_array = np.array(response.image_data_float, dtype=np.float32)
@@ -64,8 +67,8 @@ class SimpleDataCollector:
             else:
                 return None
                 
-            # 获取无人机状态
-            state = self.client.getMultirotorState()
+            # 获取无人机状态（使用Drone1）
+            state = self.client.getMultirotorState(vehicle_name="Drone1")
             pose = state.kinematics_estimated.pose
             velocity = state.kinematics_estimated.linear_velocity
             
@@ -97,8 +100,8 @@ class SimpleDataCollector:
         
     def collect_sample(self, sensor_data):
         """收集数据样本"""
-        # 检查碰撞
-        collision_info = self.client.simGetCollisionInfo()
+        # 检查碰撞（使用Drone1）
+        collision_info = self.client.simGetCollisionInfo(vehicle_name="Drone1")
         
         # 估算期望前进速度（基于当前速度）
         velocity_magnitude = np.linalg.norm(sensor_data['velocity'])
