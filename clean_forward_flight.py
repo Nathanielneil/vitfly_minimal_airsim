@@ -162,10 +162,39 @@ class CleanForwardFlight:
             return {}
             
     def check_collision(self) -> bool:
-        """检查碰撞"""
+        """检查真实碰撞（过滤误报）"""
         try:
             collision_info = self.client.simGetCollisionInfo(vehicle_name=self.vehicle_name)
-            return collision_info.has_collided
+            
+            # 检查是否真的有碰撞且碰撞强度足够
+            if collision_info.has_collided:
+                # 检查碰撞强度和持续时间
+                impact_point = collision_info.impact_point
+                penetration_depth = collision_info.penetration_depth
+                
+                # 只有当有明显的碰撞深度时才认为是真碰撞
+                if penetration_depth > 0.01:  # 1cm以上的深度
+                    self.logger.warning(f"检测到真实碰撞: 深度 {penetration_depth:.3f}m")
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            # API调用失败不认为是碰撞
+            return False
+            
+    def check_front_obstacle(self, depth_image: np.ndarray) -> bool:
+        """检查前方障碍物"""
+        try:
+            height, width = depth_image.shape
+            front_region = depth_image[height//3:2*height//3, width//3:2*width//3]
+            front_depth = np.mean(front_region)
+            
+            if front_depth < 0.2:  # 20cm以内有障碍物
+                self.logger.info(f"⚠️ 前方有障碍物: {front_depth:.2f}m")
+                return True
+            return False
+            
         except:
             return False
             
@@ -289,10 +318,15 @@ class CleanForwardFlight:
                     self.target_reached = True
                     break
                     
-                # 碰撞检测
+                # 碰撞检测（仅检测严重碰撞）
                 if self.check_collision():
-                    self.logger.error("💥 检测到碰撞！")
+                    self.logger.error("💥 检测到严重碰撞！")
                     break
+                    
+                # 简单障碍物检测（作为备选）
+                if self.check_front_obstacle(depth_image):
+                    # 不停止，只是警告，让ViT处理
+                    pass
                     
                 # 高度安全检查
                 if state['height'] < 0.05:
